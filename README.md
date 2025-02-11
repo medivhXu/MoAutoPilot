@@ -1,141 +1,38 @@
-# Mobile UI 自动化测试框架
+# MoAutoPilot
 
-基于 Appium 的移动端自动化测试框架，支持 Android 和 iOS 平台。
+MoAutoPilot 是一个强大的移动端 UI 自动化测试框架，基于 Appium 构建，支持 Android、iOS 和 HarmonyOS 平台。
 
-## 特性
+## ✨ 核心特性
 
-- 支持 Android 和 iOS 平台
-- 基于 Page Object Model (POM) 设计模式
-- 支持 Docker 部署
-- 集成 Appium 服务
-- 支持并行测试
-- 自动生成 HTML 测试报告
-- 日志管理系统
-- 配置文件集中管理
+- 🌈 全平台支持：Android、iOS 和 HarmonyOS
+- 🎯 智能元素定位：自动分析和定位 UI 元素
+- 🔄 并行测试：支持多设备并行测试
+- 📊 自动报告：生成详细的 HTML 测试报告
+- 🛠️ 环境管理：自动检测和配置测试环境
+- 🎨 POM 设计：基于 Page Object Model 模式
+- 🐳 容器支持：提供 Docker 部署方案
 
-## 目录结构
+## 🚀 快速开始
 
-```
-.
-├── config/
-│   └── config.yaml          # 配置文件
-├── pages/
-│   ├── __init__.py
-│   ├── android/            # Android 页面对象
-│   │   └── __init__.py
-│   ├── ios/               # iOS 页面对象
-│   │   └── __init__.py
-│   └── base_page.py       # 基础页面类
-├── test_cases/
-│   ├── __init__.py
-│   └── test_login.py      # 测试用例
-├── utils/
-│   ├── __init__.py
-│   ├── appium_driver.py   # Appium 驱动管理
-│   └── logger.py          # 日志工具
-├── test_data/             # 测试数据
-├── logs/                  # 日志文件
-├── reports/               # 测试报告
-├── requirements.txt       # Python 依赖
-├── Dockerfile            # Docker 构建文件
-├── docker-compose.yml    # Docker 编排文件
-└── README.md
-```
+### 环境准备
 
-## 环境要求
-
-- Python 3.9+
-- Appium Server
-- Android SDK (适用于 Android 测试)
-- Xcode (适用于 iOS 测试)
-- Docker & Docker Compose (可选)
-
-## 安装
-
-### 本地安装
-
-1. 克隆项目：
 ```bash
-git clone <repository_url>
-cd <project_directory>
-```
+# 1. 克隆项目
+git clone https://github.com/yourusername/MoAutoPilot.git
+cd MoAutoPilot
 
-2. 创建并激活虚拟环境：
-```bash
+# 2. 创建虚拟环境
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
+source venv/bin/activate  # macOS/Linux
 # 或
-venv\Scripts\activate     # Windows
-```
+.\venv\Scripts\activate   # Windows
 
-3. 安装依赖：
-```bash
+# 3. 安装依赖
 pip install -r requirements.txt
-```
 
-### Docker 部署
-
-1. 启动 Appium 服务：
-```bash
-docker-compose up -d
-```
-
-2. 启动测试：
-```bash
-pytest
-```
-
-3. 生成测试报告：
-```bash
-pytest --html=report.html
-```
-
-## 配置
-
-### 配置文件
-
-配置文件集中管理在 `config` 目录下，支持多个环境配置。
-
-### 测试环境配置
-```bash
-pytest --config=config/test.yaml
-```
-
-### 生产环境配置
-```bash
-pytest --config=config/production.yaml
-```
-
-## 运行测试
-
-### 本地运行测试
-```bash
-# 运行所有测试
-pytest test_cases/
-
-# 运行特定测试文件
-pytest test_cases/test_login.py
-
-# 生成 HTML 报告
-pytest test_cases/ --html=reports/report.html
-```
-
-### Docker 环境运行
-```bash
-# 运行所有测试
-docker-compose run test
-
-# 查看日志
-docker-compose logs -f
-```
-
-## 环境检查
-
-运行环境检查和安装：
-
-```bash
-# 使用 -s 参数允许输入输出交互
+# 4. 运行环境检查
 pytest test_cases/test_automation.py -v -s
+```
 
 
 注意：
