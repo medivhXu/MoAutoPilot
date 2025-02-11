@@ -1,0 +1,107 @@
+# Appium 服务器配置
+appium_server:
+  host: localhost
+  port: 4723
+
+# iOS 配置
+ios:
+  platformName: iOS
+  deviceName: iPhone Simulator
+  platformVersion: '15.0'
+  automationName: XCUITest
+  app: /path/to/your/app.app
+  noReset: true
+
+# Android 配置
+android:
+  platformName: Android
+  deviceName: Android Emulator
+  platformVersion: '11.0'
+  automationName: UiAutomator2
+  app: /path/to/your/app.apk
+  noReset: true
+
+# 测试配置
+test_info:
+  implicit_wait: 10
+  timeout: 30
+
+# 应用功能描述
+app_features:
+  login:
+    description: "用户登录模块"
+    elements:
+      - name: "用户名输入框"
+        type: "input"
+        id: "username_input"
+        placeholder: "请输入用户名"
+      - name: "密码输入框"
+        type: "input"
+        id: "password_input"
+        placeholder: "请输入密码"
+      - name: "登录按钮"
+        type: "button"
+        id: "login_button"
+        text: "登录"
+      - name: "忘记密码"
+        type: "link"
+        id: "forget_pwd"
+        text: "忘记密码？"
+    validations:
+      - "用户名不能为空"
+      - "密码不能为空"
+      - "用户名格式错误"
+      - "密码长度不足"
+      
+  home:
+    description: "首页模块"
+    elements:
+      - name: "搜索框"
+        type: "search"
+        id: "search_input"
+        placeholder: "搜索商品"
+      - name: "banner轮播"
+        type: "swipe"
+        id: "banner_container"
+      - name: "商品列表"
+        type: "list"
+        id: "product_list"
+        child_elements:
+          - name: "商品图片"
+            type: "image"
+            id: "product_image"
+          - name: "商品名称"
+            type: "text"
+            id: "product_name"
+          - name: "商品价格"
+            type: "text"
+            id: "product_price"
+    gestures:
+      - "下拉刷新"
+      - "上拉加载"
+      
+  product_detail:
+    description: "商品详情模块"
+    elements:
+      - name: "商品大图"
+        type: "gallery"
+        id: "product_gallery"
+      - name: "商品标题"
+        type: "text"
+        id: "product_title"
+      - name: "商品描述"
+        type: "text"
+        id: "product_desc"
+      - name: "加入购物车"
+        type: "button"
+        id: "add_to_cart"
+      - name: "立即购买"
+        type: "button"
+        id: "buy_now"
+    media:
+      - name: "商品视频"
+        type: "video"
+        id: "product_video"
+      - name: "语音介绍"
+        type: "audio"
+        id: "product_audio" 

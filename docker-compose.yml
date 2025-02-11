@@ -1,0 +1,28 @@
+version: '3'
+services:
+  appium:
+    image: appium/appium
+    privileged: true
+    network_mode: "host"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - ~/.android:/root/.android
+    environment:
+      - ANDROID_HOME=/root/.android
+      - APPIUM_HOST=0.0.0.0
+      - APPIUM_PORT=4723
+    ports:
+      - "4723:4723"
+
+  test:
+    build: .
+    depends_on:
+      - appium
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+    environment:
+      - APPIUM_HOST=appium
+      - PYTHONPATH=/app
+    command: pytest test_cases/ -v --html=reports/report.html 
