@@ -104,4 +104,4 @@ app_features:
         id: "product_video"
       - name: "语音介绍"
         type: "audio"
-        id: "product_audio" 
+        id: "product_audio"

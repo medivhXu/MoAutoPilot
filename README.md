@@ -1,143 +1,133 @@
 # MoAutoPilot
 
-MoAutoPilot 是一个强大的移动端 UI 自动化测试框架，基于 Appium 构建，支持 Android、iOS 和 HarmonyOS 平台。
+MoAutoPilot 是一个基于 Appium 的移动端自动化测试框架，支持 Android、iOS 和 HarmonyOS 平台。
 
-## ✨ 核心特性
+## ✨ 特性
 
-- 🌈 全平台支持：Android、iOS 和 HarmonyOS
-- 🎯 智能元素定位：自动分析和定位 UI 元素
-- 🔄 并行测试：支持多设备并行测试
-- 📊 自动报告：生成详细的 HTML 测试报告
-- 🛠️ 环境管理：自动检测和配置测试环境
-- 🎨 POM 设计：基于 Page Object Model 模式
-- 🐳 容器支持：提供 Docker 部署方案
+- 🌈 多平台支持
+  - Android 设备和模拟器
+  - iOS 设备和模拟器
+  - HarmonyOS 设备
+- 🎯 智能化测试
+  - 智能元素定位
+  - 自动等待和重试
+  - 自动处理权限弹窗
+- 🔄 并行测试
+  - 多设备并行执行
+  - 失败重试机制
+  - 用例优先级管理
+- 📊 测试报告
+  - HTML 格式报告
+  - 失败场景截图
+  - 详细执行日志
 
 ## 🚀 快速开始
 
-### 环境准备
+### 环境要求
 
+- Python 3.8+
+- Node.js 18/20
+- Java JDK 8
+- Android SDK (Android 测试)
+- Xcode (iOS 测试)
+- Appium 2.0+
+
+### 安装步骤
+
+1. 克隆项目并安装依赖
 ```bash
-# 1. 克隆项目
 git clone https://github.com/yourusername/MoAutoPilot.git
 cd MoAutoPilot
-
-# 2. 创建虚拟环境
 python -m venv venv
 source venv/bin/activate  # macOS/Linux
 # 或
 .\venv\Scripts\activate   # Windows
-
-# 3. 安装依赖
 pip install -r requirements.txt
-
-# 4. 运行环境检查
-pytest test_cases/test_automation.py -v -s
 ```
 
-
-注意：
-- 首次运行会检查并安装必要组件
-- 需要手动安装的组件会提示确认
-- 环境配置完成后会保存状态
-- 后续运行会复用已有环境
-
-## 页面对象示例
-
-```python
-from pages.base_page import BasePage
-from selenium.webdriver.common.by import By
-
-class LoginPage(BasePage):
-    # 定义页面元素
-    username_input = (By.ID, "username_field")
-    password_input = (By.ID, "password_field")
-    login_button = (By.ID, "login_button")
-
-    def login(self, username, password):
-        """登录方法"""
-        self.input_text(self.username_input, username)
-        self.input_text(self.password_input, password)
-        self.click(self.login_button)
+2. 配置测试环境
+```bash
+# 检查环境配置
+python -m pytest tests/test_environment.py
 ```
 
-## 测试用例示例
+3. 配置设备信息
+```yaml
+# config/config.yaml
+devices:
+  android:
+    - deviceName: "Pixel_4"
+      platformVersion: "11.0"
+      app: "~/apps/demo.apk"
+
+  ios:
+    - deviceName: "iPhone 12"
+      platformVersion: "14.5"
+      app: "~/apps/demo.ipa"
+```
+
+### 运行测试
+
+```bash
+# 运行单个测试
+pytest test_cases/test_login.py -v
+
+# 并行测试
+pytest test_cases/ -n auto
+
+# 生成报告
+pytest test_cases/ --html=report.html
+```
+
+## 📝 使用示例
+
+### 测试用例编写
 
 ```python
 from utils.appium_driver import AppiumDriver
 from pages.login_page import LoginPage
 
-class TestLogin:
-    def setup_class(self):
-        self.driver = AppiumDriver().init_driver()
-        self.login_page = LoginPage(self.driver)
-
-    def test_login_success(self):
-        self.login_page.login("username", "password")
-        # 添加断言...
-
-    def teardown_class(self):
-        self.driver.quit()
+def test_login():
+    # 初始化驱动
+    driver = AppiumDriver(platform='android')
+    
+    # 执行登录操作
+    login_page = LoginPage(driver)
+    login_page.login("username", "password")
+    
+    # 验证结果
+    assert login_page.is_login_successful()
 ```
 
-## 日志系统
-
-日志文件保存在 `logs` 目录下，按日期自动生成：
+### 页面对象定义
 
 ```python
-from utils.logger import Logger
+from utils.base_page import BasePage
 
-logger = Logger().get_logger()
-logger.info("测试开始")
-logger.error("发生错误")
+class LoginPage(BasePage):
+    # 页面元素
+    username_input = "id=username"
+    password_input = "id=password"
+    login_button = "id=login"
+    
+    def login(self, username, password):
+        self.input_text(self.username_input, username)
+        self.input_text(self.password_input, password)
+        self.click(self.login_button)
 ```
 
-## 常见问题解决
+## 📖 文档
 
-### 1. Appium 连接问题
-- 检查 Appium 服务是否正常运行
-- 确认设备已正确连接并启用调试模式
-- 验证配置文件中的连接参数
+更多详细信息，请参考：
+- [使用指南](docs/usage.md)
+- [API 文档](docs/api.md)
+- [最佳实践](docs/best-practices.md)
 
-### 2. 元素定位失败
-- 检查定位方式是否正确
-- 确认等待时间是否充足
-- 验证页面是否已完全加载
+## 🤝 贡献
 
-### 3. Docker 相关问题
-- 确保 Docker 服务正常运行
-- 检查端口映射配置
-- 验证容器网络连接
+欢迎提交 Issue 和 Pull Request。
 
-## 最佳实践
+## 📄 开源协议
 
-1. 测试用例编写
-   - 遵循单一职责原则
-   - 保持测试用例独立性
-   - 合理使用夹具（fixtures）
-
-2. 页面对象维护
-   - 及时更新页面元素定位
-   - 封装常用操作
-   - 保持代码简洁
-
-3. 配置管理
-   - 不同环境使用不同配置文件
-   - 敏感信息使用环境变量
-   - 定期更新配置参数
-
-## 贡献指南
-
-1. Fork 项目
-2. 创建特性分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题或建议，请提交 Issue 或联系维护团队。
-    
+本项目采用 MIT 协议 - 详见 [LICENSE](LICENSE) 文件
+```

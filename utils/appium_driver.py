@@ -57,44 +57,132 @@ class AppiumDriver:
         print(f"✓ Appium 服务器地址: {self.appium_host}:{self.appium_port}")
 
     def _load_config(self):
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
+        """加载配置文件"""
+        try:
+            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'config.yaml')
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f)
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"配置文件不存在: {config_path}") from e
+        except yaml.YAMLError as e:
+            raise ValueError(f"配置文件格式错误: {str(e)}") from e
+        except Exception as e:
+            raise RuntimeError(f"加载配置文件失败: {str(e)}") from e
+
+    def create_session(self):
+        """创建 Appium 会话"""
+        print("\n创建 Appium 会话...")
+        try:
+            caps = self._get_device_capabilities()
+            server_url = f'http://{self.appium_host}:{self.appium_port}/wd/hub'
+            print(f"✓ 正在连接服务器: {server_url}")
+            
+            self.driver = webdriver.Remote(server_url, caps)
+            self.driver.implicitly_wait(self.config['test_info']['implicit_wait'])
+            print("✓ Appium 会话创建成功")
+            return self.driver
+            
+        except KeyError as e:
+            raise KeyError(f"配置文件缺少必要的配置项: {str(e)}") from e
+        except webdriver.common.exceptions.WebDriverException as e:
+            raise ConnectionError(f"连接 Appium 服务器失败: {str(e)}") from e
+        except Exception as e:
+            raise RuntimeError(f"创建 Appium 会话失败: {str(e)}") from e
+
+    def _get_device_capabilities(self):
+        """获取设备配置"""
+        try:
+            # 获取平台特定的配置
+            device_config = self.config.get('devices', {}).get(self.platform, [])
+            if not device_config:
+                raise ValueError(f"未找到 {self.platform} 平台的设备配置")
+
+            # 获取指定设备或默认第一个设备的配置
+            device_name = os.getenv('DEVICE_NAME')
+            device = next(
+                (d for d in device_config if d.get('deviceName') == device_name),
+                device_config[0] if device_config else None
+            )
+            
+            if not device:
+                raise ValueError(f"未找到设备配置: {device_name}")
+
+            # 基础配置
+            caps = {
+                'platformName': self.platform.capitalize(),
+                'automationName': 'XCUITest' if self.platform == 'ios' else 'UiAutomator2',
+                'noReset': True
+            }
+
+            # 合并设备特定配置
+            caps.update(device)
+
+            # 检查必要的配置项
+            required_caps = ['deviceName', 'platformVersion']
+            missing_caps = [cap for cap in required_caps if not caps.get(cap)]
+            if missing_caps:
+                raise KeyError(f"缺少必要的配置项: {', '.join(missing_caps)}")
+
+            return caps
+
+        except (KeyError, IndexError) as e:
+            raise KeyError(f"设备配置格式错误: {str(e)}") from e
+        except Exception as e:
+            raise RuntimeError(f"获取设备配置失败: {str(e)}") from e
 
     def start_server(self):
         """启动 Appium 服务器"""
-        print("\n启动 Appium 服务器...")
-        try:
-            # 检查 Appium 是否已安装
-            result = subprocess.run(['appium', '-v'], capture_output=True, text=True)
-            print(f"✓ Appium 版本: {result.stdout.strip()}")
+        print("\n启动 Appium 服务器...", file=sys.stderr)
+        
+        # 检查端口是否被占用
+        if self._is_port_in_use(self.appium_port):
+            error_msg = f"端口 {self.appium_port} 已被占用"
+            print(f"✗ {error_msg}", file=sys.stderr)
+            raise RuntimeError(error_msg)
+        
+        # 启动 Appium 服务器
+        cmd = ['appium', '--address', self.appium_host, '--port', str(self.appium_port)]
+        self.server_process = subprocess.Popen(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # 等待服务器启动
+        start_time = time.time()
+        while time.time() - start_time < 10:  # 最多等待10秒
+            # 检查进程是否异常退出
+            if self.server_process.poll() is not None:
+                error_output = self.server_process.stderr.read()
+                error_msg = f"Appium 服务器启动失败: {error_output}"
+                print(f"✗ {error_msg}", file=sys.stderr)
+                raise RuntimeError(error_msg)
             
-            # 检查端口是否被占用
-            if self._is_port_in_use(self.appium_port):
-                print(f"✗ 端口 {self.appium_port} 已被占用")
-                return False
-            
-            # 启动 Appium 服务器
-            cmd = ['appium', '--address', self.appium_host, '--port', self.appium_port]
-            self.server_process = subprocess.Popen(
-                cmd, 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            time.sleep(5)  # 等待服务器启动
-            
-            # 检查服务器是否成功启动
-            if self.server_process.poll() is None:
-                print("✓ Appium 服务器启动成功")
+            # 尝试连接服务器
+            if self._check_server_running():
+                print("✓ Appium 服务器启动成功", file=sys.stderr)
                 return True
-            else:
-                error = self.server_process.stderr.read()
-                print(f"✗ Appium 服务器启动失败: {error}")
-                return False
-        except Exception as e:
-            print(f"✗ 启动 Appium 服务器失败: {str(e)}")
+            
+            time.sleep(1)
+        
+        # 如果超时未启动成功
+        self.server_process.terminate()
+        raise TimeoutError("Appium 服务器启动超时")
+
+    def _check_server_running(self):
+        """检查 Appium 服务器是否正在运行"""
+        import http.client
+        try:
+            conn = http.client.HTTPConnection(self.appium_host, int(self.appium_port), timeout=1)
+            conn.request("GET", "/status")
+            response = conn.getresponse()
+            return response.status == 200
+        except:
             return False
+        finally:
+            conn.close()
+
 
     def _is_port_in_use(self, port):
         """检查端口是否被占用"""
