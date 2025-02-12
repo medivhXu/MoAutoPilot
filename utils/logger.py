@@ -10,9 +10,8 @@ class Logger:
 
         # 创建handler
         log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-        if not os.path.exists(log_path):
-            os.makedirs(log_path)
-            
+        os.makedirs(log_path, exist_ok=True)  # 确保日志目录存在
+        
         log_name = os.path.join(log_path, f'{time.strftime("%Y%m%d")}.log')
         fh = logging.FileHandler(log_name, encoding='utf-8')
         ch = logging.StreamHandler()

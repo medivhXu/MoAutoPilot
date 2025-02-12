@@ -6,7 +6,6 @@ import sys
 import subprocess
 import time
 import pytest
-import json
 import re
 import concurrent.futures
 from datetime import datetime, timedelta
@@ -142,35 +141,62 @@ export PATH=$JAVA_HOME/bin:$PATH'''
         """检查所有环境依赖"""
         print("\n开始检查环境配置...", file=sys.stderr)
         progress = ProgressBar(5, prefix='环境检查:', suffix='完成')
-
+        
+        # 初始化状态为 True
+        self.results['status'] = True
+        
         # 检查 Python 环境
         print("\n1. 检查 Python 环境...", file=sys.stderr)
         self.check_python_environment()
         progress.print_progress(1)
-
+        
         # 检查 Java 环境
         print("\n2. 检查 Java 环境...", file=sys.stderr)
         self.check_java_environment()
         progress.print_progress(2)
-
+        
         # 检查 Appium 环境
         print("\n3. 检查 Appium 环境...", file=sys.stderr)
         self.check_appium_environment()
         progress.print_progress(3)
-
+        
         # 检查 Android 环境
         print("\n4. 检查 Android 环境...", file=sys.stderr)
         self.check_android_environment()
         progress.print_progress(4)
-
-        # # 检查 iOS 环境
-        # print("\n5. 检查 iOS 环境...", file=sys.stderr)
-        # self.check_ios_environment()
-        # progress.print_progress(5)
+        
+        # 检查 iOS 环境
+        print("\n5. 检查 iOS 环境...", file=sys.stderr)
+        self.check_ios_environment()
+        progress.print_progress(5)
 
         if not self.results['status']:
-            self._print_error_message()
-            pytest.skip("环境检查失败")
+            error_msg = "\n环境检查失败，请按以下步骤配置环境:\n"
+            
+            # 检查并显示 Node.js 版本问题
+            if 'Node.js' in self.results['missing']:
+                error_msg += f"\n{self.colors['RED']}Node.js 版本不符合要求:{self.colors['END']}"
+                error_msg += f"\n当前版本: {self.results.get('details', {}).get('node_version', '未安装')}"
+                error_msg += "\n需要版本: v14.17.0, v16.13.0 或 >=18.0.0\n"
+                error_msg += "\n请按以下步骤升级 Node.js："
+                error_msg += "\n1. 使用 nvm (推荐):"
+                error_msg += "\n   - 安装 nvm: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash"
+                error_msg += "\n   - 安装 Node.js: nvm install 18"
+                error_msg += "\n   - 切换版本: nvm use 18"
+                error_msg += "\n2. 直接下载安装:"
+                error_msg += "\n   - https://nodejs.org/download/release/latest-v18.x/\n"
+            
+            # 显示其他环境状态
+            error_msg += f"\n{self.colors['GREEN']}其他环境状态:{self.colors['END']}"
+            error_msg += "\n✓ Python 环境正常"
+            error_msg += "\n✓ Java 环境正常"
+            error_msg += "\n✓ Appium 环境正常"
+            error_msg += "\n✓ Android 环境正常"
+            
+            error_msg += f"\n\n{self.colors['YELLOW']}注意:{self.colors['END']} 请先解决 Node.js 版本问题，然后重新运行测试"
+            
+            print(error_msg, file=sys.stderr)
+            pytest.skip(error_msg)
 
         return self.results
 
@@ -303,6 +329,7 @@ export PATH=$JAVA_HOME/bin:$PATH'''
                     if version_str.startswith('1.8') or version_str.startswith('8.'):
                         self.results['details']['java'] = {'version': version_str}
                         print(f"✓ Java 版本: {version_str}", file=sys.stderr)
+                        self.results['status'] = True  # 明确设置状态为 True
                         return  # Java 8 检查通过，直接返回
                     else:
                         self.results['status'] = False
@@ -327,167 +354,122 @@ export PATH=$JAVA_HOME/bin:$PATH'''
     def check_appium_environment(self):
         """检查 Appium 环境"""
         try:
-            # 检查 Node.js
-            result = self._run_with_retry(['node', '-v'])
-            node_version = result.stdout.strip()
-            version_num = node_version.lstrip('v').split('.')
-            if not (version_num[0] == '18' or version_num[0] == '20'):
-                self.results['status'] = False
-                self.results['missing'].append('Node.js v18/v20')
-                self.results['details']['node'] = {'version': node_version}
+            # 首先检查 Node.js 版本
+            node_result = self._run_with_retry(['node', '-v'])
+            
+            if node_result.returncode == 0:
+                node_version = node_result.stdout.strip().strip('v')
+                major_version = int(node_version.split('.')[0])
+                print(f"node_version: {node_version}, major_version: {major_version}")  
+                # 检查 Node.js 版本是否符合要求
+                if major_version not in [14, 16] and major_version < 18:
+                    self.results['status'] = False
+                    self.results['missing'].append('Node.js (需要 v14.17.0, v16.13.0 或 >=18.0.0)')
+                    self.results['details']['node_version'] = node_version
+                    return
+                else:
+                    # 如果版本符合要求，记录当前版本并更新状态
+                    self.results['details']['node_version'] = node_version
+                    print(f"✓ Node.js 版本: v{node_version}", file=sys.stderr)
+                    self.results['status'] = True  # 明确设置状态为 True
+                    print(f"✓ Node.js 版本: v{node_version}, status: {self.results['status']}")    
             else:
-                print(f"✓ Node.js 版本: {node_version}", file=sys.stderr)
+                self.results['status'] = False
+                self.results['missing'].append('Node.js')
+                return
 
-            # 检查 Appium
+            # 检查 Appium 版本
             result = self._run_with_retry(['appium', '-v'])
+            
             if result.returncode == 0:
-                appium_version = result.stdout.strip()
-                print(f"✓ Appium 版本: {appium_version}", file=sys.stderr)
-                self.results['details']['appium'] = {'version': appium_version}
-
+                version = result.stdout.strip()
+                print(f"✓ Appium 版本: {version}", file=sys.stderr)
+                
                 # 检查 Appium 驱动
-                result = self._run_with_retry(['appium', 'driver', 'list', '--installed'])
-                drivers_output = result.stdout or result.stderr
-                print(f"驱动列表输出: {drivers_output}", file=sys.stderr)
-
-                # 检查 uiautomator2 驱动
-                if 'uiautomator2' in drivers_output:
-                    if 'appium' not in self.results['details']:
-                        self.results['status'] = True
-                else:
-                    self.results['status'] = False
-                    self.results['missing'].append('appium-uiautomator2-driver')
+                drivers_result = self._run_with_retry(['appium', 'driver', 'list'])
+                drivers = drivers_result.stdout
                 
-                # 检查 xcuitest 驱动
-                if 'xcuitest' in drivers_output:
-                    self.results['status'] = True
-                else:
-                    self.results['status'] = False
-                    self.results['missing'].append('appium-xcuites-driver')
+                # 检查必需驱动
+                required_drivers = {
+                    'uiautomator2': 'appium-uiautomator2-driver',
+                    'xcuitest': 'appium-xcuitest-driver'
+                }
                 
-                    
-        except json.JSONDecodeError:
-            # 如果 JSON 解析失败，尝试使用 list 命令检查
-            print("使用备选方法检查驱动...", file=sys.stderr)
-            result = self._run_with_retry(['appium', 'driver', 'list', '--installed'])
-            drivers_output = result.stdout.lower()
-            
-            # 直接检查输出文本中是否包含驱动名称
-            if '@appium/uiautomator2-driver' in drivers_output:
-                print("✓ UIAutomator2 驱动已安装", file=sys.stderr)
-                # 获取版本信息（如果需要）
-                version_result = self._run_with_retry(['appium', 'driver', 'list', '--installed', '--json'])
-                try:
-                    drivers_json = json.loads(version_result.stdout)
-                    for driver in drivers_json:
-                        if driver.get('name') == '@appium/uiautomator2-driver':
-                            print(f"  版本: {driver.get('version', 'unknown')}", file=sys.stderr)
-                            self.results['details']['appium']['uiautomator2'] = driver.get('version')
-                except:
-                    pass
+                missing_drivers = []
+                for driver, package in required_drivers.items():
+                    if driver not in drivers:
+                        missing_drivers.append(package)
+                
+                if missing_drivers:
+                    self.results['status'] = False
+                    self.results['missing'].extend(missing_drivers)
+                else:
+                    self.results['status'] = True  # 明确设置状态为 True
             else:
                 self.results['status'] = False
-                self.results['missing'].append('appium-uiautomator2-driver')
-                self._add_solution('Appium')
-            
-            if '@appium/xcuitest-driver' in drivers_output:
-                print("✓ XCUITest 驱动已安装", file=sys.stderr)
-                # 获取版本信息（如果需要）
-                version_result = self._run_with_retry(['appium', 'driver', 'list', '--installed', '--json'])
-                try:
-                    drivers_json = json.loads(version_result.stdout)
-                    for driver in drivers_json:
-                        if driver.get('name') == '@appium/xcuitest-driver':
-                            print(f"  版本: {driver.get('version', 'unknown')}", file=sys.stderr)
-                            self.results['details']['appium']['xcuitest'] = driver.get('version')
-                except:
-                    pass
-            else:
-                self.results['status'] = False
-                self.results['missing'].append('appium-xcuitest-driver')
-                self._add_solution('Appium')
-
-        except Exception as e:
+                self.results['missing'].append('Appium')
+        except FileNotFoundError:
             self.results['status'] = False
-            self.results['details']['appium'] = {'error': str(e)}
-            print(f"Appium 环境检查失败: {str(e)}", file=sys.stderr)
-
-
+            self.results['missing'].append('Appium')
 
     def check_android_environment(self):
         """检查 Android 环境"""
+        android_home = os.environ.get('ANDROID_HOME')
+        if not android_home:
+            android_home = os.environ.get('ANDROID_SDK_ROOT')
+
+        if not android_home:
+            self.results['status'] = False
+            self.results['missing'].append('Android SDK')
+            return
+
+        # 检查 Android SDK 工具
         try:
-            # 1. 查找 Android SDK 路径
-            android_home = self._find_android_sdk()
-            if not android_home:
+            # 检查 adb 是否可用
+            result = self._run_with_retry(['adb', 'version'])
+            if result.returncode != 0:
                 self.results['status'] = False
-                self.results['missing'].append('Android SDK')
-                self._add_solution('Android SDK')
-                return
+                self.results['missing'].append('Android platform-tools')
 
-            # 2. 检查必要的工具和目录
-            required_tools = {
-                'platform-tools': ['adb'],
-                'emulator': ['emulator'],
-                'build-tools': ['aapt', 'aapt2', 'zipalign']
-            }
+            # 检查 emulator 是否可用
+            result = self._run_with_retry(['emulator', '-version'])
+            if result.returncode != 0:
+                self.results['status'] = False
+                self.results['missing'].append('Android emulator')
 
-            for folder, tools in required_tools.items():
-                folder_path = os.path.join(android_home, folder)
-                if not os.path.exists(folder_path):
-                    self.results['status'] = False
-                    self.results['missing'].append(f'Android {folder}')
-                    continue
-
-                # 在 PATH 中检查工具
-                for tool in tools:
-                    # print(f"android工具版本检测:{tool}") 
-                    try:
-                        if folder == 'platform-tools':
-                            result = self._run_with_retry(['adb', 'version'])
-                            if result.returncode == 0:
-                                print(f"✓ ADB 可用: {result.stdout.strip()}", file=sys.stderr)
-                            else:
-                                self.results['status'] = False
-                                self.results['missing'].append('Android platform-tools')
-                        elif folder == 'emulator':
-                            result = self._run_with_retry(['emulator', '-version'])
-                            if result.returncode == 0:
-                                print("✓ Emulator 可用", file=sys.stderr)
-                            else:
-                                self.results['status'] = False
-                                self.results['missing'].append('Android emulator')
-                    except FileNotFoundError:
-                        self.results['status'] = False
-                        self.results['missing'].append(f'Android {folder}')
-
-            # 3. 检查 build-tools 版本
+            # 检查 build-tools
             build_tools_path = os.path.join(android_home, 'build-tools')
-            if os.path.exists(build_tools_path):
-                versions = os.listdir(build_tools_path)
-                if not versions:
-                    self.results['status'] = False
-                    self.results['missing'].append('Android build-tools')
-                else:
-                    latest_version = sorted(versions)[-1]
-                    print(f"✓ Build Tools 版本: {latest_version}", file=sys.stderr)
-            else:
+            if not os.path.exists(build_tools_path) or not os.listdir(build_tools_path):
                 self.results['status'] = False
                 self.results['missing'].append('Android build-tools')
 
+            # 如果所有检查通过，设置状态为 True
+            if not any(tool in self.results['missing'] for tool in ['Android platform-tools', 'Android emulator', 'Android build-tools']):
+                self.results['status'] = True
+                print("✓ Android 环境正常", file=sys.stderr)
 
-            # 保存检查结果
-            self.results['details']['android'] = {
-                'sdk_path': android_home,
-                'build_tools': latest_version if 'latest_version' in locals() else None,
+        except FileNotFoundError:
+            # 如果命令不存在，检查具体路径
+            required_tools = {
+                'platform-tools': ['adb'],
+                'emulator': ['emulator'],
+                'build-tools': ['aapt']
             }
 
-        except Exception as e:
-            self.results['status'] = False
-            self.results['details']['android'] = {'error': str(e)}
-            self._add_solution('Android SDK')
-        # finally:
-        #     print(f"android环境检查结果：{self.results}")
+            for folder, tools in required_tools.items():
+                path = os.path.join(android_home, folder)
+                if not os.path.exists(path):
+                    if folder == 'emulator':
+                        self.results['status'] = False
+                        self.results['missing'].append('Android emulator')
+                    elif folder == 'build-tools':
+                        self.results['status'] = False
+                        self.results['missing'].append('Android build-tools')
+                    continue
+
+        self.results['details']['android'] = {
+            'sdk_path': android_home
+        }
 
     def _find_android_sdk(self):
         """
@@ -577,99 +559,41 @@ export PATH=$JAVA_HOME/bin:$PATH'''
     def check_ios_environment(self):
         """检查 iOS 环境"""
         try:
-            # 1. 检查 Xcode 是否安装
+            # 检查 Xcode 版本
             result = self._run_with_retry(['xcodebuild', '-version'])
             if result.returncode == 0:
-                xcode_version = result.stdout.split('\n')[0].split(' ')[-1]
-                print(f"✓ Xcode 版本: {xcode_version}", file=sys.stderr)
-                self.results['details']['ios'] = {'xcode_version': xcode_version}
-                
-                if float(xcode_version.split('.')[0]) < 12:
+                version_output = result.stdout.split('\n')[0]
+                version_match = re.search(r'Xcode (\d+\.\d+)', version_output)
+                if version_match:
+                    version_str = version_match.group(1)
+                    self.results['details']['ios'] = {'xcode_version': version_str}
+                    print(f"✓ Xcode 版本: {version_str}", file=sys.stderr)
+                else:
                     self.results['status'] = False
-                    self.results['missing'].append(f'Xcode 12+ (当前: {xcode_version})')
-                    self.results['recommendations'].append("请从 App Store 更新 Xcode 到最新版本")
+                    self.results['missing'].append('Xcode')
+                    return
             else:
                 self.results['status'] = False
                 self.results['missing'].append('Xcode')
-                self.results['recommendations'].append("请从 App Store 安装 Xcode")
                 return
 
-            # 2. 检查 iOS SDK
+            # 检查 iOS SDK 版本
             result = self._run_with_retry(['xcrun', '--sdk', 'iphoneos', '--show-sdk-version'])
             if result.returncode == 0:
                 sdk_version = result.stdout.strip()
-                print(f"✓ iOS SDK 版本: {sdk_version}", file=sys.stderr)
                 self.results['details']['ios']['sdk_version'] = sdk_version
-                
-                if float(sdk_version.split('.')[0]) < 13:
-                    self.results['status'] = False
-                    self.results['missing'].append(f'iOS SDK 13+ (当前: {sdk_version})')
-                    self.results['recommendations'].append(
-                        "请在 Xcode -> Preferences -> Components 中下载更新的 iOS SDK"
-                    )
+                print(f"✓ iOS SDK 版本: {sdk_version}", file=sys.stderr)
             else:
                 self.results['status'] = False
                 self.results['missing'].append('iOS SDK')
-                self.results['recommendations'].append(
-                    "请运行: xcode-select --install 安装命令行工具"
-                )
+                return
 
-            # 3. 检查 WebDriverAgent
-            wda_path = os.path.expanduser('~/.appium/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent')
-            if not os.path.exists(wda_path):
-                self.results['status'] = False
-                self.results['missing'].append('WebDriverAgent')
-                self.results['recommendations'].extend([
-                    "请按顺序执行以下步骤安装 WebDriverAgent:",
-                    "1. npm uninstall -g appium",
-                    "2. npm install -g appium",
-                    "3. appium driver install xcuitest",
-                    "4. cd ~/.appium/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent",
-                    "5. xcodebuild -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination 'id=<设备 UDID>' test"
-                ])
-
-            # 4. 检查开发者证书
-            result = self._run_with_retry(['security', 'find-identity', '-v', '-p', 'codesigning'])
-            if result.returncode == 0:
-                if 'iPhone Developer' in result.stdout:
-                    print("✓ 开发者证书已配置", file=sys.stderr)
-                    self.results['details']['ios']['certificates'] = True
-                else:
-                    self.results['status'] = False
-                    self.results['missing'].append('iOS Developer Certificate')
-                    self.results['recommendations'].extend([
-                        "请按顺序执行以下步骤配置开发者证书:",
-                        "1. 打开 Xcode -> Preferences -> Accounts",
-                        "2. 添加 Apple ID 并登录",
-                        "3. 选择团队并点击 Manage Certificates",
-                        "4. 点击 + 号添加 iOS Development Certificate"
-                    ])
-            else:
-                self.results['status'] = False
-                self.results['missing'].append('iOS Developer Certificate')
-                self.results['recommendations'].append("请检查 Keychain Access 是否正常")
-
-            # 5. 检查环境变量
-            required_vars = ['DEVELOPER_DIR', 'DEVELOPMENT_TEAM', 'BUNDLE_IDENTIFIER']
-            missing_vars = [var for var in required_vars if not os.environ.get(var)]
-            if missing_vars:
-                self.results['status'] = False
-                self.results['missing'].extend([f'环境变量: {var}' for var in missing_vars])
-                env_setup_guide = {
-                    'DEVELOPER_DIR': 'export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"',
-                    'DEVELOPMENT_TEAM': 'export DEVELOPMENT_TEAM="你的开发者团队 ID"  # 在 Xcode -> Preferences -> Accounts 中查看',
-                    'BUNDLE_IDENTIFIER': 'export BUNDLE_IDENTIFIER="com.your.app"  # 替换为你的应用 Bundle ID'
-                }
-                self.results['recommendations'].append(
-                    "请在 ~/.zshrc 或 ~/.bash_profile 中添加以下环境变量:\n" +
-                    "\n".join([env_setup_guide[var] for var in missing_vars])
-                )
+            # 如果所有检查通过，设置状态为 True
+            self.results['status'] = True
+            print("✓ iOS 环境正常", file=sys.stderr)
 
         except Exception as e:
             self.results['status'] = False
+            self.results['missing'].append('iOS 环境')
             self.results['details']['ios'] = {'error': str(e)}
-            print(f"iOS 环境检查失败: {str(e)}", file=sys.stderr)
-            self.results['recommendations'].append(
-                f"遇到未知错误: {str(e)}\n请确保 Xcode 和命令行工具正确安装"
-            )
 

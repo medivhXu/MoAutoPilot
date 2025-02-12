@@ -34,8 +34,8 @@ class AutoTestGenerator:  # 改名以避免与测试类混淆
         :return: 测试用例字典
         """
         element_info = {
-            'type': element.get_attribute('type'),
-            'name': element.get_attribute('name') or element.get_attribute('text') or '未命名元素'
+            'type': element.get('type', 'unknown'),
+            'name': element.get('name') or element.get('text') or '未命名元素'
         }
         
         test_case = {
