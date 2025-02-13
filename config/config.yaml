@@ -21,6 +21,16 @@ android:
   app: /path/to/your/app.apk
   noReset: true
 
+# 鸿蒙配置
+harmony:
+  platformName: HarmonyOS
+  deviceName: Harmony Device
+  platformVersion: '2.0'
+  automationName: UiAutomator2
+  appPackage: com.example.harmonyapp
+  appActivity: .MainActivity
+  noReset: true
+
 # 测试配置
 test_info:
   implicit_wait: 10

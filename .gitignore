@@ -60,3 +60,5 @@ allure-report/
 
 # Config
 .env 
+
+.DS_Store

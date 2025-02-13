@@ -6,9 +6,9 @@ class HarmonyUtils:
         """获取鸿蒙设备信息"""
         try:
             return {
-                'deviceType': driver.execute_script('harmony: getDeviceType'),
-                'systemVersion': driver.execute_script('harmony: getSystemVersion'),
-                'deviceModel': driver.execute_script('harmony: getDeviceModel')
+                'deviceType': driver.capabilities.get('deviceType'),
+                'systemVersion': driver.capabilities.get('platformVersion'),
+                'deviceModel': driver.capabilities.get('deviceModel')
             }
         except Exception as e:
             print(f"获取设备信息失败: {str(e)}")

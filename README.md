@@ -64,6 +64,15 @@ devices:
     - deviceName: "iPhone 12"
       platformVersion: "14.5"
       app: "~/apps/demo.ipa"
+
+  harmony:
+    - platformName: HarmonyOS
+      deviceName: Harmony Device
+      platformVersion: '2.0'
+      automationName: UiAutomator2
+      appPackage: com.example.harmonyapp
+      appActivity: .MainActivity
+      noReset: true
 ```
 
 ### 运行测试
@@ -130,4 +139,29 @@ class LoginPage(BasePage):
 ## 📄 开源协议
 
 本项目采用 MIT 协议 - 详见 [LICENSE](LICENSE) 文件
+
+## 鸿蒙系统支持
+
+MoAutoPilot 支持 HarmonyOS 设备的自动化测试。要测试鸿蒙设备，请确保：
+
+1. 设备已开启开发者模式
+2. 已安装必要的驱动
+3. 在 `config/config.yaml` 中配置鸿蒙设备信息
+
+示例配置：
+```yaml
+harmony:
+  platformName: HarmonyOS
+  deviceName: Harmony Device
+  platformVersion: '2.0'
+  automationName: UiAutomator2
+  appPackage: com.example.harmonyapp
+  appActivity: .MainActivity
+  noReset: true
+```
+
+运行测试时，请设置环境变量：
+```bash
+export TEST_PLATFORM=harmony
+pytest test_cases/test_automation.py
 ```

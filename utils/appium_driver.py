@@ -25,7 +25,7 @@ class AppiumDriver:
             },
             'harmony': {
                 'platformName': 'HarmonyOS',
-                'automationName': 'HarmonyDriver',
+                'automationName': 'UiAutomator2',
                 'noReset': True
             }
         }

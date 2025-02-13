@@ -3,4 +3,10 @@ pytest==7.4.3
 PyYAML==6.0.1
 allure-pytest==2.13.2
 selenium==4.15.2
-pytest-html==4.1.1 
+pytest-html==4.1.1
+
+# 鸿蒙系统测试插件
+hypium @ file:./hypium-5.0.7.200/hypium-5.0.7.200.tar.gz
+xdevice @ file:./hypium-5.0.7.200/xdevice-5.0.7.200.tar.gz
+xdevice-devicetest @ file:./hypium-5.0.7.200/xdevice-devicetest-5.0.7.200.tar.gz
+xdevice-ohos @ file:./hypium-5.0.7.200/xdevice-ohos-5.0.7.200.tar.gz
