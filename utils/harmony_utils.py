@@ -1,3 +1,5 @@
+from utils.logger import logger
+
 class HarmonyUtils:
     """鸿蒙系统特定工具类"""
     
@@ -11,7 +13,7 @@ class HarmonyUtils:
                 'deviceModel': driver.capabilities.get('deviceModel')
             }
         except Exception as e:
-            print(f"获取设备信息失败: {str(e)}")
+            logger.info(f"获取设备信息失败: {str(e)}")
             return None
     
     @staticmethod

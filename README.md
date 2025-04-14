@@ -48,7 +48,7 @@ pip install -r requirements.txt
 2. 配置测试环境
 ```bash
 # 检查环境配置
-python -m pytest tests/test_environment.py
+python -m pytest tests/test_environment.py -v -s
 ```
 
 3. 配置设备信息
@@ -79,7 +79,7 @@ devices:
 
 ```bash
 # 运行单个测试
-pytest test_cases/test_login.py -v
+pytest test_cases/test_automation.py -v -s
 
 # 并行测试
 pytest test_cases/ -n auto
@@ -125,12 +125,6 @@ class LoginPage(BasePage):
         self.click(self.login_button)
 ```
 
-## 📖 文档
-
-更多详细信息，请参考：
-- [使用指南](docs/usage.md)
-- [API 文档](docs/api.md)
-- [最佳实践](docs/best-practices.md)
 
 ## 🤝 贡献
 

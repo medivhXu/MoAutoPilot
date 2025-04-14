@@ -1,29 +1,27 @@
-import logging
-import os
-import time
+import traceback
+import functools
+from loguru import logger
 
-class Logger:
-    def __init__(self):
-        # 创建logger
-        self.logger = logging.getLogger()
-        self.logger.setLevel(logging.INFO)
 
-        # 创建handler
-        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
-        os.makedirs(log_path, exist_ok=True)  # 确保日志目录存在
-        
-        log_name = os.path.join(log_path, f'{time.strftime("%Y%m%d")}.log')
-        fh = logging.FileHandler(log_name, encoding='utf-8')
-        ch = logging.StreamHandler()
+def logged(func):
+    """创建一个日志装饰器，它会记录所装饰函数的入参和
+    """
+    result = None
 
-        # 设置输出格式
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        fh.setFormatter(formatter)
-        ch.setFormatter(formatter)
+    @functools.wraps(func)
+    def inner(*args, **kwargs):
 
-        # 添加handler
-        self.logger.addHandler(fh)
-        self.logger.addHandler(ch)
+        try:
+            nonlocal result
+            result = func(*args, **kwargs)
+            # logger.info('模块:{}\n 调用函数 {} 传入参数: {},{}\n 返回结果: {}'
+            #             .format(inspect.getmodule(func), func.__name__,
+            #                     args, kwargs, result))
+            return result
+        except Exception as Ex:
+            logger.error("{}方法入参:{},{}".format(func.__name__, args, kwargs))
+            e = traceback.format_exc()
+            logger.error('Exception：{}'.format(e))
+            raise Ex
 
-    def get_logger(self):
-        return self.logger 
+    return inner

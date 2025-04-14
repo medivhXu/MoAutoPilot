@@ -3,38 +3,94 @@ appium_server:
   host: localhost
   port: 4723
 
-# iOS 配置
-ios:
-  platformName: iOS
-  deviceName: iPhone Simulator
-  platformVersion: '15.0'
-  automationName: XCUITest
-  app: /path/to/your/app.app
-  noReset: true
+devices:
+  # iOS 配置
+  ios:
+    - name: "iPhone 14"
+      platformName: iOS
+      deviceName: iPhone 14
+      platformVersion: '16.0'
+      automationName: XCUITest
+      bundleId: com.apple.calculator
+      noReset: true
+    - name: "iPhone 13"
+      platformName: iOS
+      deviceName: iPhone 13
+      platformVersion: '15.0'
+      automationName: XCUITest
+      bundleId: com.apple.calculator
+      noReset: true
 
-# Android 配置
-android:
-  platformName: Android
-  deviceName: Android Emulator
-  platformVersion: '11.0'
-  automationName: UiAutomator2
-  app: /path/to/your/app.apk
-  noReset: true
+  # Android 配置
+  android:
+    - name: "Pixel 6"
+      platformName: Android
+      deviceName: Pixel_6_API_31
+      platformVersion: '12.0'
+      automationName: UiAutomator2
+      appPackage: com.android.chrome  # 更新为 Chrome 浏览器
+      appActivity: com.google.android.apps.chrome.Main  # 更新为 Chrome 主活动
+      noReset: true
+    - name: "Pixel 4"
+      platformName: Android
+      deviceName: Pixel_4_API_30
+      platformVersion: '11.0'
+      automationName: UiAutomator2
+      appPackage: com.android.chrome  # 更新为 Chrome 浏览器
+      appActivity: com.google.android.apps.chrome.Main  # 更新为 Chrome 主活动
+      noReset: true
 
-# 鸿蒙配置
-harmony:
-  platformName: HarmonyOS
-  deviceName: Harmony Device
-  platformVersion: '2.0'
-  automationName: UiAutomator2
-  appPackage: com.example.harmonyapp
-  appActivity: .MainActivity
-  noReset: true
+  # android emulator
+  android emulator:
+    - name: "Pixel 7"
+      platformName: Android
+      deviceName: emulator-5554
+      platformVersion: '15.0'  # 更新为实际可用的版本
+      automationName: UiAutomator2
+      appPackage: com.android.chrome  # 更新为 Chrome 浏览器
+      appActivity: com.google.android.apps.chrome.Main  # 更新为 Chrome 主活动
+      noReset: true
+    - name: "Pixel 8"
+      platformName: Android
+      deviceName: emulator-5556
+      platformVersion: '14.0'
+      automationName: UiAutomator2
+      appPackage: com.android.chrome  # 更新为 Chrome 浏览器
+      appActivity: com.google.android.apps.chrome.Main  # 更新为 Chrome 主活动
+      noReset: true
+    - name: "Pixel 6"
+      platformName: Android
+      deviceName: Pixel_6_API_33
+      platformVersion: '15.0'  # 更新为实际可用的版本
+      automationName: UiAutomator2
+      appPackage: com.android.chrome  # 更新为 Chrome 浏览器
+      appActivity: com.google.android.apps.chrome.Main  # 更新为 Chrome 主活动
+      noReset: true
+
+  # 鸿蒙配置
+  harmony:
+    - name: "Harmony Device 1"
+      platformName: HarmonyOS
+      deviceName: Harmony_Device_1
+      platformVersion: '2.0'
+      automationName: UiAutomator2
+      appPackage: com.example.harmonyapp
+      appActivity: .MainActivity
+      noReset: true
+    - name: "Harmony Device 2"
+      platformName: HarmonyOS
+      deviceName: Harmony_Device_2
+      platformVersion: '2.0'
+      automationName: UiAutomator2
+      appPackage: com.example.harmonyapp
+      appActivity: .MainActivity
+      noReset: true
 
 # 测试配置
 test_info:
   implicit_wait: 10
   timeout: 30
+  default_device: 0  # 默认使用第一个设备
 
 # 应用功能描述
 app_features:

@@ -2,6 +2,7 @@ from appium.webdriver.common.appiumby import AppiumBy
 import yaml
 import time
 from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException, WebDriverException
+from utils.logger import logger
 
 class AppInspector:
     """应用检查器"""
@@ -30,7 +31,7 @@ class AppInspector:
             }
             return app_info
         except Exception as e:
-            print(f"获取应用信息失败: {str(e)}")
+            logger.error(f"获取应用信息失败: {str(e)}")
             return None
 
     def _scan_app_features(self):
@@ -73,7 +74,7 @@ class AppInspector:
 
             return features
         except Exception as e:
-            print(f"扫描应用功能失败: {str(e)}")
+            logger.error(f"扫描应用功能失败: {str(e)}")
             return {}
 
     def _guess_element_type(self, element):
@@ -145,7 +146,7 @@ class AppInspector:
                 except (StaleElementReferenceException, NoSuchElementException, WebDriverException):
                     continue
         except Exception as e:
-            print(f"扫描其他页面失败: {str(e)}")
+            logger.error(f"扫描其他页面失败: {str(e)}")
 
     def update_config(self, config_path):
         """更新配置文件"""
@@ -178,7 +179,7 @@ class AppInspector:
 
             return True
         except Exception as e:
-            print(f"更新配置文件失败: {str(e)}")
+            logger.error(f"更新配置文件失败: {str(e)}")
             return False
 
     def analyze_current_page(self):
@@ -226,7 +227,7 @@ class AppInspector:
             elif element_type == 'switch':
                 return self.driver.find_elements_by_xpath('//*[@type="switch" or contains(@class, "switch")]')
         except Exception as e:
-            print(f"查找元素失败: {str(e)}")
+            logger.error(f"查找元素失败: {str(e)}")
             return []
 
     def generate_element_map(self):
@@ -246,6 +247,6 @@ class AppInspector:
                         'text': element.text
                     }
             except Exception as e:
-                print(f"处理元素失败: {str(e)}")
+                logger.error(f"处理元素失败: {str(e)}")
         
         return self.element_map 
