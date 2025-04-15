@@ -192,26 +192,36 @@ class AppInspector:
 
     def find_interactive_elements(self):
         """
-        查找可交互元素
+        查找页面中的可交互元素
         :return: 可交互元素列表
         """
-        elements = []
-        # 查找按钮
-        buttons = self.find_elements_by_type('button')
-        if buttons:
-            elements.extend(buttons)
-        
-        # 查找输入框
-        inputs = self.find_elements_by_type('input')
-        if inputs:
-            elements.extend(inputs)
-        
-        # 查找开关
-        switches = self.find_elements_by_type('switch')
-        if switches:
-            elements.extend(switches)
-        
-        return elements
+        try:
+            elements = self.analyze_current_page()
+            if not elements:
+                logger.warning("未找到页面元素，无法查找可交互元素")
+                return []
+            
+            # 筛选可交互元素
+            interactive_elements = []
+            for element in elements:
+                attrs = element.get('attributes', {})
+                
+                # 检查元素是否可点击
+                if attrs.get('clickable') == 'true' or attrs.get('enabled') == 'true':
+                    interactive_elements.append(element)
+                    continue
+                
+                # 检查元素类型
+                element_class = attrs.get('class', '').lower()
+                if any(widget in element_class for widget in ['button', 'edit', 'text', 'view', 'image', 'checkbox', 'radio']):
+                    interactive_elements.append(element)
+                    continue
+            
+            logger.info(f"找到 {len(interactive_elements)} 个可交互元素")
+            return interactive_elements
+        except Exception as e:
+            logger.error(f"查找可交互元素失败: {str(e)}")
+            return []
 
     def find_elements_by_type(self, element_type):
         """
@@ -230,23 +240,112 @@ class AppInspector:
             logger.error(f"查找元素失败: {str(e)}")
             return []
 
+    def find_elements_by_id(self, element_id):
+        """
+        通过 ID 查找元素
+        :param element_id: 元素 ID
+        :return: 元素列表
+        """
+        try:
+            if not self.driver:
+                logger.error("WebDriver 未初始化，无法查找元素")
+                return []
+            
+            # 尝试多种定位策略
+            elements = []
+            
+            # 1. 直接使用 ID 定位
+            try:
+                from appium.webdriver.common.appiumby import AppiumBy
+                elements = self.driver.driver.find_elements(AppiumBy.ID, element_id)
+            except Exception as e1:
+                logger.warning(f"通过 ID 直接定位失败: {str(e1)}")
+                
+                # 2. 尝试使用 resource-id 属性定位
+                try:
+                    xpath = f"//*[@resource-id='{element_id}']"
+                    elements = self.driver.driver.find_elements(AppiumBy.XPATH, xpath)
+                except Exception as e2:
+                    logger.warning(f"通过 resource-id 定位失败: {str(e2)}")
+                    
+                    # 3. 尝试使用部分匹配
+                    try:
+                        xpath = f"//*[contains(@resource-id, '{element_id}')]"
+                        elements = self.driver.driver.find_elements(AppiumBy.XPATH, xpath)
+                    except Exception as e3:
+                        logger.warning(f"通过部分 ID 匹配定位失败: {str(e3)}")
+            
+            logger.info(f"通过 ID '{element_id}' 找到 {len(elements)} 个元素")
+            return elements
+        except Exception as e:
+            logger.error(f"查找元素失败: {str(e)}")
+            return []
+
     def generate_element_map(self):
         """
-        生成元素地图
+        生成页面元素地图
         :return: 元素地图字典
         """
-        elements = self.find_interactive_elements()
-        for element in elements:
-            try:
-                element_id = element.get_attribute('id') or element.get_attribute('name')
-                if element_id:
-                    self.element_map[element_id] = {
-                        'type': element.get_attribute('type'),
-                        'location': element.location,
-                        'size': element.size,
-                        'text': element.text
+        try:
+            elements = self.analyze_current_page()
+            if not elements:
+                logger.warning("未找到页面元素，无法生成元素地图")
+                return {}
+            
+            # 生成元素地图
+            element_map = {
+                'page_title': 'Chrome 浏览器页面',
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'total_elements': len(elements),
+                'interactive_elements': len(self.find_interactive_elements()),
+                'elements': {}
+            }
+            
+            # 按元素类型分组
+            for element in elements:
+                element_type = element.get('attributes', {}).get('class', '未知类型')
+                if element_type not in element_map['elements']:
+                    element_map['elements'][element_type] = []
+                    
+                element_map['elements'][element_type].append({
+                    'text': element.get('text', ''),
+                    'attributes': element.get('attributes', {})
+                })
+            
+            logger.info(f"生成元素地图，包含 {len(element_map['elements'])} 种元素类型")
+            return element_map
+        except Exception as e:
+            logger.error(f"生成元素地图失败: {str(e)}")
+            return {'error': str(e)}
+
+    def _parse_page_source(self):
+        """
+        解析页面源代码
+        :return: 解析后的元素列表
+        """
+        try:
+            if not self.page_source:
+                logger.error("页面源代码为空，无法解析")
+                return []
+            
+            # 使用 BeautifulSoup 解析 XML
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(self.page_source, 'lxml-xml')
+            
+            # 提取所有元素
+            elements = []
+            for element in soup.find_all(True):
+                # 只处理有属性的元素
+                if element.attrs:
+                    elem_info = {
+                        'tag': element.name,
+                        'attributes': element.attrs,
+                        'text': element.text.strip() if element.text else ''
                     }
-            except Exception as e:
-                logger.error(f"处理元素失败: {str(e)}")
-        
-        return self.element_map 
+                    elements.append(elem_info)
+            
+            logger.info(f"解析到 {len(elements)} 个元素")
+            return elements
+        except Exception as e:
+            logger.error(f"解析页面源代码失败: {str(e)}")
+            return []

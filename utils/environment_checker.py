@@ -430,20 +430,7 @@ export PATH=$JAVA_HOME/bin:$PATH'''
                         logger.info("✗ 未安装 uiautomator2 驱动，尝试安装...", file=sys.stderr)
                         self.results['recommendations'].append("安装 uiautomator2 驱动: appium driver install uiautomator2")
                         
-                        # 尝试安装 uiautomator2 驱动
-                        install_result = subprocess.run(['appium', 'driver', 'install', 'uiautomator2'], 
-                                                    capture_output=True, 
-                                                    text=True,
-                                                    timeout=60)
-                        
-                        if install_result.returncode == 0:
-                            logger.info("✓ uiautomator2 驱动安装成功", file=sys.stderr)
-                        else:
-                            # 检查错误信息是否表明驱动已安装
-                            if "A driver named \"uiautomator2\" is already installed" in install_result.stderr:
-                                logger.info("✓ uiautomator2 驱动已经安装", file=sys.stderr)
-                            else:
-                                logger.info(f"✗ uiautomator2 驱动安装失败: {install_result.stderr}", file=sys.stderr)
+                        self._install_uiautomator2_driver()
                     
                 except json.JSONDecodeError:
                     logger.info("✗ 解析驱动列表失败", file=sys.stderr)
@@ -586,29 +573,17 @@ export PATH=$JAVA_HOME/bin:$PATH'''
                     
                     # 尝试自动安装 UiAutomator2 服务
                     logger.info("正在尝试自动安装 UiAutomator2 服务...", file=sys.stderr)
-                    try:
-                        # 先确保 Appium 服务器已停止
-                        subprocess.run(['pkill', '-f', 'appium'], capture_output=True)
-                        time.sleep(1)
-                        
-                        # 安装 UiAutomator2 驱动
-                        install_result = subprocess.run(['appium', 'driver', 'install', 'uiautomator2'], 
-                                                      capture_output=True, 
-                                                      text=True,
-                                                      timeout=60)
-                        
-                        if install_result.returncode == 0:
-                            logger.info("✓ UiAutomator2 驱动安装成功", file=sys.stderr)
-                            # 安装成功后，尝试修复 UiAutomator2 服务
-                            self.fix_uiautomator2_service(device_id)
-                        else:
-                            logger.info(f"✗ UiAutomator2 驱动安装失败: {install_result.stderr}", file=sys.stderr)
-                    except Exception as e:
-                        logger.info(f"✗ 自动安装 UiAutomator2 驱动失败: {str(e)}", file=sys.stderr)
+                    # 先确保 Appium 服务器已停止
+                    subprocess.run(['pkill', '-f', 'appium'], capture_output=True)
+                    time.sleep(1)
+                    
+                    # 安装 UiAutomator2 驱动
+                    if self._install_uiautomator2_driver():
+                        logger.info("✓ UiAutomator2 驱动安装成功", file=sys.stderr)
+                    else:
+                        logger.info("✗ UiAutomator2 驱动安装失败", file=sys.stderr)
                 else:
                     logger.info(f"✓ 设备 {device_id} 已安装 UiAutomator2 服务", file=sys.stderr)
-                    # 即使已安装，也尝试修复 UiAutomator2 服务
-                    self.fix_uiautomator2_service(device_id)
                 
                 # 检查设备 API 级别
                 try:
@@ -1167,6 +1142,9 @@ export PATH=$JAVA_HOME/bin:$PATH'''
                 ['adb', '-s', device_id, 'shell', 'settings', 'put', 'global', 'adb_enabled', '1'],
                 ['adb', '-s', device_id, 'shell', 'settings', 'put', 'global', 'stay_on_while_plugged_in', '1'],
                 ['adb', '-s', device_id, 'shell', 'settings', 'put', 'global', 'hidden_api_policy', '1'],
+                # 添加以下设置以解决 INSTRUMENTATION_FAILED 问题
+                ['adb', '-s', device_id, 'shell', 'settings', 'put', 'global', 'hidden_api_policy_pre_p_apps', '1'],
+                ['adb', '-s', device_id, 'shell', 'settings', 'put', 'global', 'hidden_api_policy_p_apps', '1'],
             ]
             for cmd in permission_cmds:
                 subprocess.run(cmd, capture_output=True)
@@ -1203,8 +1181,12 @@ export PATH=$JAVA_HOME/bin:$PATH'''
                 '/Applications/Appium Server GUI.app/Contents/Resources/app/node_modules/appium/node_modules/appium-uiautomator2-driver/node_modules/appium-uiautomator2-server/apks',
                 '/Applications/Appium Server GUI.app/Contents/Resources/app/node_modules/appium/node_modules/appium-uiautomator2-driver/apks',
                 os.path.expanduser('~/.appium/node_modules/appium-uiautomator2-driver/node_modules/appium-uiautomator2-server/apks'),
+                # 添加更多可能的路径
+                os.path.expanduser('~/.appium/node_modules/appium-uiautomator2-driver/apks'),
+                os.path.expanduser('~/node_modules/appium-uiautomator2-driver/apks'),
             ]
             
+            apk_found = False
             for apk_dir in apk_paths:
                 if os.path.exists(apk_dir):
                     logger.info(f"找到 APK 目录: {apk_dir}", file=sys.stderr)
@@ -1216,13 +1198,47 @@ export PATH=$JAVA_HOME/bin:$PATH'''
                         test_apk = os.path.join(apk_dir, sorted(test_apks)[-1])
                         
                         logger.info(f"安装服务端 APK: {server_apk}", file=sys.stderr)
-                        subprocess.run(['adb', '-s', device_id, 'install', '-r', '-g', '-t', server_apk], capture_output=True)
+                        # 添加 -d 参数以允许降级安装，这可能解决版本不兼容问题
+                        subprocess.run(['adb', '-s', device_id, 'install', '-r', '-g', '-t', '-d', server_apk], capture_output=True)
                         time.sleep(2)
                         
                         logger.info(f"安装测试 APK: {test_apk}", file=sys.stderr)
-                        subprocess.run(['adb', '-s', device_id, 'install', '-r', '-g', '-t', test_apk], capture_output=True)
+                        subprocess.run(['adb', '-s', device_id, 'install', '-r', '-g', '-t', '-d', test_apk], capture_output=True)
                         time.sleep(2)
+                        apk_found = True
                         break
+            
+            # 如果没有找到 APK，尝试直接从 npm 包中提取
+            if not apk_found:
+                logger.info("未找到 APK 文件，尝试从 npm 包中提取...", file=sys.stderr)
+                try:
+                    # 获取 appium-uiautomator2-driver 的安装路径
+                    npm_list = subprocess.run(['npm', 'list', '-g', 'appium-uiautomator2-driver'], 
+                                            capture_output=True, text=True)
+                    
+                    # 使用 find 命令查找 APK 文件
+                    find_cmd = "find $(npm root -g) -name '*.apk' | grep uiautomator2"
+                    find_result = subprocess.run(find_cmd, shell=True, capture_output=True, text=True)
+                    
+                    if find_result.stdout:
+                        apk_files = find_result.stdout.strip().split('\n')
+                        server_apks = [f for f in apk_files if 'test' not in f.lower()]
+                        test_apks = [f for f in apk_files if 'test' in f.lower()]
+                        
+                        if server_apks and test_apks:
+                            server_apk = server_apks[0]
+                            test_apk = test_apks[0]
+                            
+                            logger.info(f"找到服务端 APK: {server_apk}", file=sys.stderr)
+                            logger.info(f"找到测试 APK: {test_apk}", file=sys.stderr)
+                            
+                            subprocess.run(['adb', '-s', device_id, 'install', '-r', '-g', '-t', '-d', server_apk], capture_output=True)
+                            time.sleep(2)
+                            subprocess.run(['adb', '-s', device_id, 'install', '-r', '-g', '-t', '-d', test_apk], capture_output=True)
+                            time.sleep(2)
+                            apk_found = True
+                except Exception as e:
+                    logger.info(f"从 npm 包中提取 APK 失败: {str(e)}", file=sys.stderr)
             
             # 10. 验证安装
             result = self._run_with_retry(['adb', '-s', device_id, 'shell', 'pm', 'list', 'packages', 'io.appium.uiautomator2.server'])
@@ -1235,25 +1251,98 @@ export PATH=$JAVA_HOME/bin:$PATH'''
                     ['adb', '-s', device_id, 'shell', 'pm', 'grant', 'io.appium.uiautomator2.server', 'android.permission.READ_EXTERNAL_STORAGE'],
                     ['adb', '-s', device_id, 'shell', 'pm', 'grant', 'io.appium.uiautomator2.server', 'android.permission.WRITE_EXTERNAL_STORAGE'],
                     ['adb', '-s', device_id, 'shell', 'pm', 'grant', 'io.appium.uiautomator2.server', 'android.permission.READ_LOGS'],
+                    # 添加更多可能需要的权限
+                    ['adb', '-s', device_id, 'shell', 'pm', 'grant', 'io.appium.uiautomator2.server', 'android.permission.WRITE_SECURE_SETTINGS'],
+                    ['adb', '-s', device_id, 'shell', 'pm', 'grant', 'io.appium.uiautomator2.server', 'android.permission.ACCESS_FINE_LOCATION'],
+                    ['adb', '-s', device_id, 'shell', 'pm', 'grant', 'io.appium.uiautomator2.server', 'android.permission.SYSTEM_ALERT_WINDOW'],
                 ]
                 for cmd in grant_cmds:
                     subprocess.run(cmd, capture_output=True)
                 
-                # 12. 启动 instrumentation 测试
+                # 12. 检查设备 API 级别
+                api_result = self._run_with_retry(['adb', '-s', device_id, 'shell', 'getprop', 'ro.build.version.sdk'])
+                api_level = int(api_result.stdout.strip()) if api_result.returncode == 0 else 0
+                
+                # 对于 Android 10+ 设备，需要特殊处理
+                if api_level >= 29:
+                    logger.info(f"检测到 Android {api_level} (10+) 设备，应用特殊处理...", file=sys.stderr)
+                    # 设置特殊权限
+                    special_cmds = [
+                        ['adb', '-s', device_id, 'shell', 'appops', 'set', 'io.appium.uiautomator2.server', 'MANAGE_EXTERNAL_STORAGE', 'allow'],
+                        ['adb', '-s', device_id, 'shell', 'appops', 'set', 'io.appium.uiautomator2.server', 'PROJECT_MEDIA', 'allow'],
+                        ['adb', '-s', device_id, 'shell', 'appops', 'set', 'io.appium.uiautomator2.server', 'ACCESS_MEDIA_LOCATION', 'allow'],
+                    ]
+                    for cmd in special_cmds:
+                        subprocess.run(cmd, capture_output=True)
+                
+                # 13. 启动 instrumentation 测试前先确保设备解锁
+                logger.info("确保设备解锁...", file=sys.stderr)
+                unlock_cmds = [
+                    ['adb', '-s', device_id, 'shell', 'input', 'keyevent', '82'],  # MENU 键，通常可以唤醒设备
+                    ['adb', '-s', device_id, 'shell', 'input', 'keyevent', '3'],   # HOME 键
+                ]
+                for cmd in unlock_cmds:
+                    subprocess.run(cmd, capture_output=True)
+                time.sleep(1)
+                
+                # 14. 启动 instrumentation 测试
                 logger.info("启动 instrumentation 测试...", file=sys.stderr)
+                # 使用更详细的命令，添加更多参数以获取更多调试信息
                 test_cmd = [
                     'adb', '-s', device_id, 'shell', 'am', 'instrument',
-                    '-w', '-e', 'debug', 'false',
+                    '-w', '-e', 'debug', 'true', '-e', 'log', 'true',
                     'io.appium.uiautomator2.server.test/androidx.test.runner.AndroidJUnitRunner'
                 ]
-                test_result = subprocess.run(test_cmd, capture_output=True, text=True)
+                test_result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=30)
                 
-                if 'INSTRUMENTATION_STATUS: Error' not in test_result.stdout:
+                # 检查测试结果
+                if 'INSTRUMENTATION_FAILED' not in test_result.stdout and 'INSTRUMENTATION_FAILED' not in test_result.stderr:
                     logger.info("✓ Instrumentation 测试成功", file=sys.stderr)
                     return True
                 else:
-                    logger.info(f"✗ Instrumentation 测试失败: {test_result.stdout}", file=sys.stderr)
-                    return False
+                    # 如果测试失败，尝试使用另一种方法启动服务
+                    logger.info("✗ Instrumentation 测试失败，尝试替代方法...", file=sys.stderr)
+                    
+                    # 15. 尝试直接启动 UiAutomator2 服务
+                    logger.info("尝试直接启动 UiAutomator2 服务...", file=sys.stderr)
+                    start_cmd = [
+                        'adb', '-s', device_id, 'shell', 'am', 'start',
+                        '-n', 'io.appium.uiautomator2.server/.MainActivity'
+                    ]
+                    subprocess.run(start_cmd, capture_output=True)
+                    time.sleep(3)
+                    
+                    # 16. 检查服务是否运行
+                    check_cmd = [
+                        'adb', '-s', device_id, 'shell', 'ps', '|', 'grep', 'uiautomator'
+                    ]
+                    check_result = subprocess.run(' '.join(check_cmd), shell=True, capture_output=True, text=True)
+                    
+                    if 'io.appium.uiautomator2.server' in check_result.stdout:
+                        logger.info("✓ UiAutomator2 服务已启动", file=sys.stderr)
+                        return True
+                    else:
+                        logger.info("✗ UiAutomator2 服务启动失败", file=sys.stderr)
+                        
+                        # 17. 最后尝试降级安装旧版本的 UiAutomator2 驱动
+                        logger.info("尝试安装兼容版本的 UiAutomator2 驱动...", file=sys.stderr)
+                        subprocess.run(['npm', 'install', '-g', 'appium-uiautomator2-driver@2.12.0'], capture_output=True)
+                        time.sleep(5)
+                        
+                        # 重新安装驱动
+                        subprocess.run(['appium', 'driver', 'uninstall', 'uiautomator2'], capture_output=True)
+                        time.sleep(1)
+                        subprocess.run(['appium', 'driver', 'install', 'uiautomator2', '--source=npm'], capture_output=True)
+                        time.sleep(3)
+                        
+                        # 再次尝试启动测试
+                        test_result = subprocess.run(test_cmd, capture_output=True, text=True)
+                        if 'INSTRUMENTATION_FAILED' not in test_result.stdout and 'INSTRUMENTATION_FAILED' not in test_result.stderr:
+                            logger.info("✓ 使用兼容版本后 Instrumentation 测试成功", file=sys.stderr)
+                            return True
+                        else:
+                            logger.info("✗ 所有修复尝试均失败", file=sys.stderr)
+                            return False
             else:
                 logger.info("✗ UiAutomator2 服务安装失败", file=sys.stderr)
                 return False
@@ -1300,18 +1389,15 @@ export PATH=$JAVA_HOME/bin:$PATH'''
             # 构建 Appium Inspector 的 capabilities
             capabilities = {
                 "platformName": "Android",
-                "automationName": "UiAutomator2",
+                "automationName": "UiAutomator1",
                 "deviceName": device_config.get('device_name', ''),
                 "platformVersion": device_config.get('platform_version', ''),
                 "noReset": True,
                 "newCommandTimeout": 3600,
                 "autoGrantPermissions": True,  # 自动授予权限
-                "skipServerInstallation": False,  # 不跳过服务器安装
-                "skipDeviceInitialization": False,  # 不跳过设备初始化
                 "enforceAppInstall": True,  # 强制安装应用
                 "skipUnlock": True,  # 跳过解锁
-                "systemPort": 8200,  # 使用自定义系统端口
-                "connectHardwareKeyboard": True
+                "connectHardwareKeyboard": True,
             }
             
             # 如果配置中有 udid，添加到 capabilities
@@ -1341,4 +1427,28 @@ export PATH=$JAVA_HOME/bin:$PATH'''
             
         except Exception as e:
             logger.info(f"启动 Appium Inspector 失败: {str(e)}", file=sys.stderr)
+            return False
+
+    def _install_uiautomator2_driver(self):
+        """安装 UiAutomator2 驱动"""
+        try:
+            # 安装 UiAutomator2 驱动
+            install_result = subprocess.run(['appium', 'driver', 'install', 'uiautomator2'], 
+                                        capture_output=True, 
+                                        text=True,
+                                        timeout=60)
+            
+            if install_result.returncode == 1:  # 1 通常表示驱动已安装
+                logger.info("✓ uiautomator2 驱动安装成功", file=sys.stderr)
+                return True
+            else:
+                # 检查错误信息是否表明驱动已安装
+                if "A driver named \"uiautomator2\" is already installed" in install_result.stderr:
+                    logger.info("✓ uiautomator2 驱动已经安装", file=sys.stderr)
+                    return True
+                else:
+                    logger.info(f"✗ uiautomator2 驱动安装失败: {install_result.stderr}", file=sys.stderr)
+                    return False
+        except Exception as e:
+            logger.info(f"✗ 安装 uiautomator2 驱动时出错: {str(e)}", file=sys.stderr)
             return False

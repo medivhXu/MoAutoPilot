@@ -5,6 +5,8 @@ allure-pytest==2.13.2
 selenium==4.15.2
 pytest-html==4.1.1
 loguru
+beautifulsoup4
+lxml
 
 # 鸿蒙系统测试插件
 hypium @ file:./hypium-5.0.7.200/hypium-5.0.7.200.tar.gz

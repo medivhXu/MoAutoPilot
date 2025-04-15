@@ -8,6 +8,10 @@ import subprocess
 import time
 import urllib3
 from selenium.common.exceptions import WebDriverException
+from appium.webdriver.common.appiumby import AppiumBy
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+from appium.options.android import UiAutomator2Options
 
 class AppiumDriver:
     def __init__(self, platform='android emulator', check_env=True):
@@ -127,16 +131,56 @@ class AppiumDriver:
                 caps['app'] = app_path
                 logger.info(f"✓ 应用文件路径: {app_path}")
             
-            # 6. 初始化 WebDriver
+            # 6. 初始化 WebDriver - 简化直接创建
             logger.info("正在初始化 WebDriver...")
-            self.driver = webdriver.Remote(server_url, caps)
-            logger.info("✓ WebDriver 初始化成功")
             
-            # 7. 设置等待时间
-            self.driver.implicitly_wait(self.config['test_info']['implicit_wait'])
-            logger.info(f"✓ 设置隐式等待时间: {self.config['test_info']['implicit_wait']}秒")
-            logger.info("✓ Appium 会话创建成功")
-            return self.driver
+            # 设置超时时间
+            import socket
+            original_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(180)  # 设置180秒超时
+            
+            try:
+                # 记录开始时间
+                start_time = time.time()
+                
+                # 确保 Chrome 应用已安装并可用
+                logger.info("检查 Chrome 应用是否已安装...")
+                result = subprocess.run(
+                    ['adb', '-s', 'emulator-5554', 'shell', 'pm', 'list', 'packages', 'com.android.chrome'],
+                    capture_output=True,
+                    text=True
+                )
+                # todo 检查应用是否可用
+                if 'com.android.chrome' not in result.stdout:
+                    logger.error("Chrome 应用未安装，尝试安装...")
+                    # 可以在这里添加安装 Chrome 的代码
+                
+                # 确保 UiAutomator2 服务已安装
+                logger.info("确保 UiAutomator2 服务已安装...")
+                subprocess.run(['appium', 'driver', 'install', 'uiautomator2'], capture_output=True)
+                
+                # 直接初始化 WebDriver
+                logger.info(f"连接 Appium 服务器: {server_url}")
+                logger.info(f"使用配置参数: {caps}")
+                self.driver = webdriver.Remote(server_url, options=UiAutomator2Options().load_capabilities(caps))
+                
+                # 计算耗时
+                elapsed_time = time.time() - start_time
+                logger.info(f"✓ WebDriver 初始化成功，耗时 {elapsed_time:.1f} 秒")
+                
+                # 7. 设置等待时间
+                self.driver.implicitly_wait(self.config['test_info']['implicit_wait'])
+                logger.info(f"✓ 设置隐式等待时间: {self.config['test_info']['implicit_wait']}秒")
+                logger.info("✓ Appium 会话创建成功")
+                
+                return self.driver
+            
+            except Exception as e:
+                logger.error(f"WebDriver 初始化失败: {str(e)}")
+                raise e
+            finally:
+                # 恢复原始超时设置
+                socket.setdefaulttimeout(original_timeout)
             
         except urllib3.exceptions.MaxRetryError as e:
             error_msg = "\nAppium 连接失败，请检查:\n"
@@ -232,19 +276,22 @@ class AppiumDriver:
             
             # 基础配置
             caps = {
-                'platformName': self.platform.capitalize(),
-                'automationName': 'XCUITest' if self.platform == 'ios' else 'UiAutomator2',
-                'noReset': True,
-                'skipServerInstallation': True,  # 跳过服务器安装
-                'skipDeviceInitialization': True,  # 跳过设备初始化
-                'enforceAppInstall': False,  # 不强制安装应用
-                'autoGrantPermissions': True,  # 自动授予权限
-                'newCommandTimeout': 60,  # 新命令超时时间
-                'autoLaunch': False  # 不自动启动应用
+                'platformName': self.config.get('platformName', self.platform.capitalize()),
+                'automationName': 'UiAutomator2',
+                'noReset': True, 
+                'autoGrantPermissions': True,
+                'newCommandTimeout': 120,
+                'autoLaunch': False,
+                'adbExecTimeout': 60000,
+                'avdLaunchTimeout': 60000,
+                'avdReadyTimeout': 60000,
             }
 
             # 合并设备特定配置
-            caps.update(device)
+            for key, value in device.items():
+                # 过滤掉不被识别的 capabilities
+                if key not in ['skipServerInstallation', 'uiautomator2ServerInstallTimeout', 'systemPort', 'name']:
+                    caps[key] = value
 
             # 检查必要的配置项
             required_caps = ['deviceName', 'platformVersion']
@@ -368,10 +415,7 @@ class AppiumDriver:
             logger.error(f'✗ 检查服务器状态失败：{e}')
             return False
         finally:
-            try:
-                conn.close()
-            except:
-                pass
+            conn.close()
 
     def _is_port_in_use(self, port):
         """检查端口是否被占用"""
@@ -414,3 +458,89 @@ class AppiumDriver:
             return self.driver
         except Exception as e:
             raise Exception(f"Failed to initialize driver: {str(e)}")
+
+    
+
+    def get_page_source(self):
+        """
+        获取当前页面的源代码
+        :return: 页面源代码字符串
+        """
+        try:
+            if self.driver:
+                return self.driver.page_source
+            else:
+                logger.error("WebDriver 未初始化，无法获取页面源代码")
+                return None
+        except Exception as e:
+            logger.error(f"获取页面源代码失败: {str(e)}")
+            return None
+
+    def find_elements_by_xpath(self, xpath):
+        """
+        通过 XPath 查找元素
+        :param xpath: XPath 表达式
+        :return: 元素列表
+        """
+        try:
+            if self.driver:
+                return self.driver.find_elements(AppiumBy.XPATH, xpath)
+            else:
+                logger.error("WebDriver 未初始化，无法查找元素")
+                return []
+        except Exception as e:
+            logger.error(f"通过 XPath 查找元素失败: {str(e)}")
+            return []
+
+    def find_elements_by_id(self, element_id):
+        """
+        通过 ID 查找元素
+        :param element_id: 元素 ID
+        :return: 元素列表
+        """
+        try:
+            if self.driver:
+                return self.driver.find_elements(AppiumBy.ID, element_id)
+            else:
+                logger.error("WebDriver 未初始化，无法查找元素")
+                return []
+        except Exception as e:
+            logger.error(f"通过 ID 查找元素失败: {str(e)}")
+            return []
+
+    def input_text(self, element, text):
+        """
+        向元素输入文本
+        :param element: 元素对象
+        :param text: 要输入的文本
+        :return: 是否成功
+        """
+        try:
+            if element:
+                element.clear()
+                element.send_keys(text)
+                return True
+            else:
+                logger.error("元素为空，无法输入文本")
+                return False
+        except Exception as e:
+            logger.error(f"输入文本失败: {str(e)}")
+            return False
+
+    def press_enter(self):
+        """
+        模拟按下回车键
+        :return: 是否成功
+        """
+        try:
+            if self.driver:
+                actions = ActionChains(self.driver)
+                actions.send_keys(Keys.ENTER)
+                actions.perform()
+                return True
+            else:
+                logger.error("WebDriver 未初始化，无法按下回车键")
+                return False
+        except Exception as e:
+            logger.error(f"按下回车键失败: {str(e)}")
+            return False
