@@ -1,78 +1,78 @@
 # MoAutoPilot
 
-MoAutoPilot 是一个基于 Appium 的移动端自动化测试框架，支持 Android、iOS 和 HarmonyOS 平台，并集成了 AI 驱动的测试用例生成能力。
+MoAutoPilot is a mobile automation testing framework based on Appium, supporting Android, iOS, and HarmonyOS platforms, with integrated AI-driven test case generation capabilities.
 
-## ✨ 特性
+## ✨ Features
 
-- 🌈 多平台支持
-  - Android 设备和模拟器
-  - iOS 设备和模拟器
-  - HarmonyOS 设备
-- 🎯 智能化测试
-  - 智能元素定位
-  - 自动等待和重试
-  - 自动处理权限弹窗
-- 🔄 并行测试
-  - 多设备并行执行
-  - 失败重试机制
-  - 用例优先级管理
-- 📊 测试报告
-  - HTML 格式报告
-  - 失败场景截图
-  - 详细执行日志
-- 🤖 AI 驱动测试
-  - 基于 LLM 的测试用例生成
-  - 智能 UI 分析和交互
-  - 自适应测试策略
+- 🌈 Multi-platform Support
+  - Android devices and emulators
+  - iOS devices and emulators
+  - HarmonyOS devices
+- 🎯 Intelligent Testing
+  - Smart element location
+  - Automatic waiting and retry
+  - Automatic permission dialog handling
+- 🔄 Parallel Testing
+  - Multi-device parallel execution
+  - Failure retry mechanism
+  - Test case priority management
+- 📊 Test Reports
+  - HTML format reports
+  - Failed scenario screenshots
+  - Detailed execution logs
+- 🤖 AI-driven Testing
+  - LLM-based test case generation
+  - Intelligent UI analysis and interaction
+  - Adaptive testing strategies
 
-## 🔍 与其他自动化测试框架的区别
+## 🔍 Differences from Other Automation Testing Frameworks
 
-MoAutoPilot 在传统移动自动化测试框架的基础上进行了多项创新：
+MoAutoPilot has made several innovations based on traditional mobile automation testing frameworks:
 
-| 特性 | MoAutoPilot | 传统自动化框架 |
-|------|------------|---------------|
-| **测试用例生成** | AI 驱动自动生成 | 手动编写 |
-| **元素定位** | 智能定位，多策略自动切换 | 固定定位策略 |
-| **平台支持** | Android、iOS、HarmonyOS | 通常仅支持 Android 和 iOS |
-| **测试策略** | 自适应测试策略，基于 AI 分析 | 固定测试策略 |
-| **维护成本** | 低（自动适应 UI 变化） | 高（UI 变化需手动更新） |
-| **测试覆盖率** | 高（AI 可探索边缘场景） | 中（仅覆盖预定义场景） |
-| **执行效率** | 高（并行执行，智能重试） | 中（常规执行策略） |
+| Feature | MoAutoPilot | Traditional Automation Frameworks |
+|---------|------------|-----------------------------------|
+| **Test Case Generation** | AI-driven automatic generation | Manual writing |
+| **Element Location** | Intelligent location, multiple strategies with automatic switching | Fixed location strategies |
+| **Platform Support** | Android, iOS, HarmonyOS | Usually only Android and iOS |
+| **Testing Strategy** | Adaptive testing strategies based on AI analysis | Fixed testing strategies |
+| **Maintenance Cost** | Low (automatically adapts to UI changes) | High (UI changes require manual updates) |
+| **Test Coverage** | High (AI can explore edge cases) | Medium (only covers predefined scenarios) |
+| **Execution Efficiency** | High (parallel execution, intelligent retry) | Medium (regular execution strategies) |
 
-### 核心优势
+### Core Advantages
 
-1. **AI 驱动的测试用例生成**：无需手动编写大量测试用例，AI 可基于应用描述自动生成全面的测试场景
-2. **智能 UI 分析**：自动分析应用界面结构，识别关键交互元素
-3. **跨平台兼容性**：一套框架同时支持三大移动平台，包括新兴的鸿蒙系统
-4. **自适应测试执行**：根据测试结果动态调整测试策略，提高测试效率
-5. **低维护成本**：自动适应 UI 变化，减少维护工作量
+1. **AI-driven Test Case Generation**: No need to manually write numerous test cases, AI can automatically generate comprehensive test scenarios based on application descriptions
+2. **Intelligent UI Analysis**: Automatically analyze application interface structure, identify key interactive elements
+3. **Cross-platform Compatibility**: One framework supports all three major mobile platforms, including the emerging HarmonyOS
+4. **Adaptive Test Execution**: Dynamically adjust testing strategies based on test results, improving testing efficiency
+5. **Low Maintenance Cost**: Automatically adapt to UI changes, reducing maintenance workload
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 环境要求
+### Requirements
 
 - Python 3.8+
 - Node.js 18/20
 - Java JDK 8
-- Android SDK (Android 测试)
-- Xcode (iOS 测试)
+- Android SDK (for Android testing)
+- Xcode (for iOS testing)
 - Appium 2.0+
-- Ollama (AI 测试用例生成)
+- Ollama (for AI test case generation)
 
-### 安装步骤
+### Installation Steps
 
-1. 克隆项目并安装依赖
+1. Clone the project and install dependencies
 ```bash
 git clone https://github.com/yourusername/MoAutoPilot.git
 cd MoAutoPilot
 python -m venv venv
 source venv/bin/activate  # macOS/Linux
-# 或
+# or
 .\venv\Scripts\activate   # Windows
 pip install -r requirements.txt
 ```
 
-2. 安装 Ollama（用于 AI 测试用例生成）
+2. Install Ollama (for AI test case generation)
 ```bash
 # macOS
 curl -fsSL https://ollama.com/install.sh | sh
@@ -81,23 +81,23 @@ curl -fsSL https://ollama.com/install.sh | sh
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Windows
-# 从 https://ollama.com/download 下载安装包
+# Download the installer from https://ollama.com/download
 ```
 
-3. 下载 LLM 模型（推荐使用 deepseek 系列模型）
+3. Download LLM model (recommended to use deepseek series models)
 ```bash
 ollama pull deepseek-r1:8b
-# 或使用更大参数的模型以获得更好效果
+# or use a larger parameter model for better results
 ollama pull deepseek-r1:14b
 ```
 
-4. 配置测试环境
+4. Configure the test environment
 ```bash
-# 检查环境配置
+# Check environment configuration
 python -m pytest tests/test_environment.py -v -s
 ```
 
-5. 配置设备信息
+5. Configure device information
 ```yaml
 # config/config.yaml
 devices:
@@ -121,111 +121,111 @@ devices:
       noReset: true
 ```
 
-## 🤖 AI 测试用例生成
+## 🤖 AI Test Case Generation
 
-MoAutoPilot 集成了基于大型语言模型的测试用例生成功能，可以根据应用描述自动生成测试用例。
+MoAutoPilot integrates test case generation functionality based on large language models, which can automatically generate test cases according to application descriptions.
 
-### 配置 AI 测试用例生成
+### Configure AI Test Case Generation
 
-1. 确保 Ollama 服务已启动
+1. Ensure the Ollama service is running
 ```bash
-# 检查 Ollama 服务状态
+# Check Ollama service status
 curl http://localhost:11434/api/tags
 ```
 
-2. 准备测试用例描述文件
+2. Prepare test case description file
 
-在 `test_cases_source` 目录下创建 Markdown 文件，描述应用功能和测试需求：
+Create a Markdown file in the `test_cases_source` directory, describing the application functionality and testing requirements:
 
 ```markdown
-# 短视频应用测试需求
+# Short Video Application Testing Requirements
 
-## 功能描述
-短视频应用允许用户浏览、上传、编辑和分享短视频内容。
+## Functional Description
+The short video application allows users to browse, upload, edit, and share short video content.
 
-## 测试范围
-- 视频浏览功能
-- 视频上传功能
-- 用户互动功能（点赞、评论、分享）
-- 账户管理功能
+## Testing Scope
+- Video browsing functionality
+- Video upload functionality
+- User interaction functionality (like, comment, share)
+- Account management functionality
 ```
 
-### 生成测试用例
+### Generate Test Cases
 
-运行测试用例生成脚本：
+Run the test case generation script:
 
 ```bash
 python -m pytest test_cases/test_automation.py::TestAutomation::load_test_cases_from_source -v -s
 ```
 
-生成的测试用例将保存在 `gen_cases` 目录下，格式为 JSON 或 Markdown。
+Generated test cases will be saved in the `gen_cases` directory, in JSON or Markdown format.
 
-### 自定义 AI 提示模板
+### Customize AI Prompt Templates
 
-您可以根据需要自定义 AI 提示模板，以生成更符合特定需求的测试用例：
+You can customize AI prompt templates according to your needs to generate test cases that better meet specific requirements:
 
 ```python
-# 在 test_automation.py 中修改 prompt 模板
-prompt = f"""你是一个专注移动APP测试的专家，请针对{应用类型}APP特性生成用例，按JSON格式输出：\
+# Modify the prompt template in test_automation.py
+prompt = f"""You are an expert focused on mobile APP testing, please generate test cases for {app_type} APP features, output in JSON format:\
             {content}
-            要求包含：测试步骤、预期结果、优先级。
-            特别注意：
-                1. {特定关注点1}
-                2. {特定关注点2}
-                3. {特定关注点3}"""
+            Requirements include: test steps, expected results, priority.
+            Special attention:
+                1. {specific_focus_point1}
+                2. {specific_focus_point2}
+                3. {specific_focus_point3}"""
 ```
 
-### 使用 LangChain 框架（可选）
+### Using LangChain Framework (Optional)
 
-MoAutoPilot 也支持使用 LangChain 框架进行更灵活的 AI 测试用例生成：
+MoAutoPilot also supports using the LangChain framework for more flexible AI test case generation:
 
 ```python
 from langchain.prompts import PromptTemplate
 from langchain_community.llms import Ollama
 
-template = """作为资深测试工程师，请为{feature}生成测试用例：
-1. 包含{normal_count}个正常场景和{error_count}个异常场景
-2. 每个用例需有明确的前置条件
-3. 输出Markdown表格格式"""
+template = """As a senior test engineer, please generate test cases for {feature}:
+1. Include {normal_count} normal scenarios and {error_count} error scenarios
+2. Each case needs clear preconditions
+3. Output in Markdown table format"""
 
 prompt = PromptTemplate.from_template(template)
 llm = Ollama(model="deepseek-r1:14b", temperature=0.5)
 
 chain = prompt | llm
 response = chain.invoke({
-    "feature": "抖音视频上传功能",
+    "feature": "TikTok video upload functionality",
     "normal_count": 3,
     "error_count": 2
 })
 ```
 
-## 📝 使用示例
+## 📝 Usage Examples
 
-### 测试用例编写
+### Test Case Writing
 
 ```python
 from utils.appium_driver import AppiumDriver
 from pages.login_page import LoginPage
 
 def test_login():
-    # 初始化驱动
+    # Initialize driver
     driver = AppiumDriver(platform='android')
     
-    # 执行登录操作
+    # Perform login operation
     login_page = LoginPage(driver)
     login_page.login("username", "password")
     
-    # 验证结果
+    # Verify results
     assert login_page.is_login_successful()
 ```
 
-### 页面对象定义
+### Page Object Definition
 
 ```python
 from utils.base_page import BasePage
 
 class LoginPage(BasePage):
-    # 页面元素
+    # Page elements
     username_input = "id=username"
     password_input = "id=password"
     login_button = "id=login"
@@ -236,36 +236,36 @@ class LoginPage(BasePage):
         self.click(self.login_button)
 ```
 
-### 运行测试
+### Running Tests
 
 ```bash
-# 运行单个测试
+# Run a single test
 pytest test_cases/test_automation.py -v -s
 
-# 并行测试
+# Parallel testing
 pytest test_cases/ -n auto
 
-# 生成报告
+# Generate report
 pytest test_cases/ --html=report.html
 ```
 
-## 🤝 贡献
+## 🤝 Contribution
 
-欢迎提交 Issue 和 Pull Request。
+Issues and Pull Requests are welcome.
 
-## 📄 开源协议
+## 📄 License
 
-本项目采用 MIT 协议 - 详见 [LICENSE](LICENSE) 文件
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
-## 鸿蒙系统支持
+## HarmonyOS Support
 
-MoAutoPilot 支持 HarmonyOS 设备的自动化测试。要测试鸿蒙设备，请确保：
+MoAutoPilot supports automated testing of HarmonyOS devices. To test HarmonyOS devices, ensure:
 
-1. 设备已开启开发者模式
-2. 已安装必要的驱动
-3. 在 `config/config.yaml` 中配置鸿蒙设备信息
+1. Developer mode is enabled on the device
+2. Necessary drivers are installed
+3. HarmonyOS device information is configured in `config/config.yaml`
 
-示例配置：
+Example configuration:
 ```yaml
 harmony:
   platformName: HarmonyOS
@@ -277,7 +277,7 @@ harmony:
   noReset: true
 ```
 
-运行测试时，请设置环境变量：
+When running tests, set the environment variable:
 ```bash
 export TEST_PLATFORM=harmony
 pytest test_cases/test_automation.py
